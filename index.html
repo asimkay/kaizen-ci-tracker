@@ -1,0 +1,3170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kaizen CI Tracker - Method-Guided Solution</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.0/index.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .admin-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        
+        .admin-toggle:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .method-selector {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .method-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+        
+        .method-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8f9fa;
+            min-height: 180px;
+        }
+        
+        .method-card:hover {
+            border-color: #667eea;
+            background: #ebf8ff;
+            transform: translateY(-2px);
+        }
+        
+        .method-card.selected {
+            border-color: #667eea;
+            background: #ebf8ff;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+        }
+        
+        .method-card h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .method-card p {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.4;
+            margin-bottom: 8px;
+        }
+        
+        .method-card .use-cases {
+            background: #f0f9ff;
+            border-left: 3px solid #3b82f6;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 0 5px 5px 0;
+        }
+        
+        .method-card .use-cases strong {
+            color: #1e40af;
+            font-size: 0.85rem;
+        }
+        
+        .method-card .use-cases ul {
+            margin-left: 15px;
+            margin-top: 5px;
+        }
+        
+        .method-card .use-cases li {
+            color: #374151;
+            font-size: 0.8rem;
+            margin-bottom: 3px;
+        }
+        
+        .guided-exercise {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            display: none;
+        }
+        
+        .guided-exercise.active {
+            display: block;
+        }
+        
+        .exercise-step {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .exercise-step h4 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .exercise-step ol {
+            margin-left: 20px;
+        }
+        
+        .exercise-step li {
+            margin-bottom: 8px;
+            color: #555;
+        }
+        
+        .guided-questions {
+            background: #fff8dc;
+            border: 1px solid #ffd700;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .guided-questions h4 {
+            color: #b8860b;
+            margin-bottom: 15px;
+        }
+        
+        .question-group {
+            margin-bottom: 20px;
+        }
+        
+        .question-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .question-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 80px;
+            resize: vertical;
+        }
+        
+        .question-group input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        
+        .auto-fill-btn {
+            background: #38a169;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 14px;
+        }
+        
+        .auto-fill-btn:hover {
+            background: #2f855a;
+        }
+        
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .stat-label {
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .form-section {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+        
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        button {
+            background: #667eea;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            background: #5a67d8;
+        }
+        
+        .btn-danger {
+            background: #e53e3e;
+        }
+        
+        .btn-danger:hover {
+            background: #c53030;
+        }
+        
+        .btn-success {
+            background: #38a169;
+        }
+        
+        .btn-success:hover {
+            background: #2f855a;
+        }
+        
+        .btn-warning {
+            background: #ed8936;
+        }
+        
+        .btn-warning:hover {
+            background: #dd6b20;
+        }
+        
+        .btn-small {
+            padding: 6px 12px;
+            font-size: 12px;
+            margin-right: 5px;
+            margin-bottom: 5px;
+        }
+        
+        .leaderboard {
+            background: white;
+            border-radius: 10px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .leaderboard-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .leaderboard-table th,
+        .leaderboard-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .leaderboard-table th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .leaderboard-table tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-submitted { background: #fef3c7; color: #92400e; }
+        .status-under-review { background: #dbeafe; color: #1e40af; }
+        .status-review { background: #dbeafe; color: #1e40af; }
+        .status-approved { background: #d1fae5; color: #065f46; }
+        .status-in-progress { background: #fed7aa; color: #9a3412; }
+        .status-progress { background: #fed7aa; color: #9a3412; }
+        .status-completed { background: #dcfce7; color: #166534; }
+        
+        .method-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+            background: #e2e8f0;
+            color: #4a5568;
+        }
+        
+        .status-dropdown {
+            padding: 6px 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 12px;
+            background: white;
+            cursor: pointer;
+            min-width: 120px;
+        }
+        
+        .status-dropdown:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .chart-container {
+            height: 400px;
+            margin-top: 20px;
+        }
+        
+        .tabs {
+            display: flex;
+            background: white;
+            border-radius: 10px 10px 0 0;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            flex-wrap: wrap;
+        }
+        
+        .tab {
+            flex: 1;
+            padding: 15px;
+            background: #f8f9fa;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+            min-width: 120px;
+    color: #2d3748;  /* Dark gray text */
+    font-weight: 600; /* Optional: make text bolder */
+        }
+        
+        .tab.active {
+            background: #667eea;
+            color: white;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .admin-section {
+            background: #fff5f5;
+            border: 2px solid #fed7d7;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .admin-section h3 {
+            color: #c53030;
+            margin-bottom: 15px;
+        }
+        
+        .config-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            margin-bottom: 5px;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .config-item:hover {
+            background: #f7fafc;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 10px;
+            width: 90%;
+            max-width: 800px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: black;
+        }
+        
+        .data-management {
+            background: #f0fff4;
+            border: 2px solid #9ae6b4;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .data-management h3 {
+            color: #276749;
+            margin-bottom: 15px;
+        }
+        
+        .storage-info {
+            background: #ebf8ff;
+            border: 1px solid #90cdf4;
+            border-radius: 5px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .storage-info h4 {
+            color: #2d3748;
+            margin-bottom: 10px;
+        }
+        
+        .storage-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .storage-stat {
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+            border: 1px solid #e2e8f0;
+        }
+        
+        .storage-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #2b6cb0;
+        }
+        
+        .storage-stat-label {
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+        
+        .actions-column {
+            min-width: 200px;
+        }
+        
+        .status-update-section {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            align-items: flex-start;
+        }
+        
+        .savings-input {
+            display: none;
+            margin-top: 5px;
+        }
+        
+        .savings-input input {
+            width: 100px;
+            padding: 4px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            border-radius: 3px;
+        }
+        
+        .savings-input button {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-left: 5px;
+        }
+        
+        @media (max-width: 768px) {
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                flex: none;
+            }
+            
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .leaderboard-table {
+                font-size: 12px;
+            }
+            
+            .leaderboard-table th,
+            .leaderboard-table td {
+                padding: 8px;
+            }
+            
+            .method-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Kaizen CI Tracker</h1>
+            <p>Method-Guided Continuous Improvement Dashboard</p>
+            <button class="admin-toggle" onclick="toggleAdminMode()">🔐 Admin Mode</button>
+        </div>
+
+        <!-- Storage Information -->
+        <div class="storage-info">
+            <h4>📊 Data Storage Status</h4>
+            <div class="storage-stats">
+                <div class="storage-stat">
+                    <div class="storage-stat-value" id="storageUsed">0 KB</div>
+                    <div class="storage-stat-label">Storage Used</div>
+                </div>
+                <div class="storage-stat">
+                    <div class="storage-stat-value" id="opportunitiesStored">0</div>
+                    <div class="storage-stat-label">Opportunities Stored</div>
+                </div>
+                <div class="storage-stat">
+                    <div class="storage-stat-value" id="methodsUsed">0</div>
+                    <div class="storage-stat-label">Methods Used</div>
+                </div>
+                <div class="storage-stat">
+                    <div class="storage-stat-value" id="lastSaved">Never</div>
+                    <div class="storage-stat-label">Last Saved</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Metrics Dashboard -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-number" id="totalOpportunities">0</div>
+                <div class="stat-label">Total Opportunities</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="completedOpportunities">0</div>
+                <div class="stat-label">Completed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="avgResolutionTime">0</div>
+                <div class="stat-label">Avg Resolution (Days)</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalSavings">$0</div>
+                <div class="stat-label">Total Savings</div>
+            </div>
+        </div>
+
+        <!-- Tab Navigation -->
+        <div class="tabs">
+            <button class="tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+            <button class="tab" onclick="showTab('guided-submit')">🧭 Guided CI</button>
+            <button class="tab" onclick="showTab('submit')">➕ Quick Submit</button>
+            <button class="tab" onclick="showTab('leaderboard')">🏆 Leaderboard</button>
+            <button class="tab" onclick="showTab('opportunities')">📋 All Opportunities</button>
+            <button class="tab" id="adminTab" onclick="showTab('admin')" style="display: none;">🔧 Admin</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>📈 CI Opportunities by Status</h3>
+                    <div class="chart-container">
+                        <canvas id="statusChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>🏢 Opportunities by Department</h3>
+                    <div class="chart-container">
+                        <canvas id="departmentChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>🛠️ Methods Used</h3>
+                    <div class="chart-container">
+                        <canvas id="methodChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>📅 Monthly Submission Trends</h3>
+                    <div class="chart-container">
+                        <canvas id="trendsChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>⏱️ Resolution Time by Method</h3>
+                    <div class="chart-container">
+                        <canvas id="resolutionChart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>💰 Cost Savings by Method</h3>
+                    <div class="chart-container">
+                        <canvas id="savingsChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Guided Submit Tab -->
+        <div id="guided-submit" class="tab-content">
+            <div class="method-selector">
+                <h2>🧭 Choose Your Kaizen Method</h2>
+                <p>Select the method that best fits your improvement opportunity. Each method provides guided questions to help you structure your problem and solution.</p>
+                
+                <div class="method-grid">
+                    <div class="method-card" data-method="5s">
+                        <h4>🏢 5S Methodology</h4>
+                        <p>Systematic workplace organization for efficiency, safety, and visual management.</p>
+                        <div class="use-cases">
+                            <strong>Use when you have:</strong>
+                            <ul>
+                                <li>Cluttered or disorganized workspaces</li>
+                                <li>Time wasted searching for tools/materials</li>
+                                <li>Safety hazards from poor organization</li>
+                                <li>Inconsistent workplace standards</li>
+                                <li>Need for visual management systems</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="pdca">
+                        <h4>🔄 PDCA Cycle</h4>
+                        <p>Plan-Do-Check-Act cycle for systematic problem-solving and continuous improvement.</p>
+                        <div class="use-cases">
+                            <strong>Use when you need to:</strong>
+                            <ul>
+                                <li>Test solutions before full implementation</li>
+                                <li>Establish systematic improvement processes</li>
+                                <li>Measure and validate improvement results</li>
+                                <li>Create repeatable problem-solving approach</li>
+                                <li>Ensure sustainable improvements</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="5whys">
+                        <h4>❓ 5 Whys Analysis</h4>
+                        <p>Root cause analysis to drill down to the true source of problems.</p>
+                        <div class="use-cases">
+                            <strong>Use when you have:</strong>
+                            <ul>
+                                <li>Recurring problems or symptoms</li>
+                                <li>Need to find root causes, not just symptoms</li>
+                                <li>Simple to moderately complex problems</li>
+                                <li>Want to prevent problem recurrence</li>
+                                <li>Team discussions about causes</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="gemba">
+                        <h4>👁️ Gemba Walk</h4>
+                        <p>Go-and-see approach to understand problems at the source where work happens.</p>
+                        <div class="use-cases">
+                            <strong>Use when you want to:</strong>
+                            <ul>
+                                <li>Understand actual work processes</li>
+                                <li>Engage with frontline workers</li>
+                                <li>Identify waste and inefficiencies</li>
+                                <li>Observe problems in their natural setting</li>
+                                <li>Build relationships with shop floor teams</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="vsm">
+                        <h4>🗺️ Value Stream Mapping</h4>
+                        <p>Visual representation of entire process flow to identify waste and optimization opportunities.</p>
+                        <div class="use-cases">
+                            <strong>Use when you need to:</strong>
+                            <ul>
+                                <li>Analyze complete process flows</li>
+                                <li>Identify bottlenecks and delays</li>
+                                <li>Eliminate non-value-added activities</li>
+                                <li>Reduce lead times and cycle times</li>
+                                <li>Coordinate multi-step processes</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="pokayoke">
+                        <h4>🛡️ Poka-Yoke</h4>
+                        <p>Error prevention techniques to eliminate defects and mistakes in processes.</p>
+                        <div class="use-cases">
+                            <strong>Use when you have:</strong>
+                            <ul>
+                                <li>Frequent human errors or defects</li>
+                                <li>Quality control issues</li>
+                                <li>Need to mistake-proof processes</li>
+                                <li>Repetitive tasks prone to errors</li>
+                                <li>Want to prevent rather than detect problems</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="a3">
+                        <h4>📋 A3 Problem Solving</h4>
+                        <p>Structured problem-solving approach using a single A3-sized document for communication.</p>
+                        <div class="use-cases">
+                            <strong>Use when you need:</strong>
+                            <ul>
+                                <li>Clear problem documentation</li>
+                                <li>Structured problem-solving process</li>
+                                <li>Effective communication with management</li>
+                                <li>Standardized improvement reporting</li>
+                                <li>Logical thinking and analysis</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="fishbone">
+                        <h4>🐟 Fishbone Diagram</h4>
+                        <p>Cause and effect analysis to identify all potential causes of a problem systematically.</p>
+                        <div class="use-cases">
+                            <strong>Use when you have:</strong>
+                            <ul>
+                                <li>Complex problems with multiple causes</li>
+                                <li>Need for team brainstorming</li>
+                                <li>Unclear root causes</li>
+                                <li>Want to explore all possible factors</li>
+                                <li>Multiple departments involved</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="pareto">
+                        <h4>📊 Pareto Analysis</h4>
+                        <p>80/20 rule application to focus on the most impactful improvements first.</p>
+                        <div class="use-cases">
+                            <strong>Use when you need to:</strong>
+                            <ul>
+                                <li>Prioritize multiple problems</li>
+                                <li>Focus on highest-impact improvements</li>
+                                <li>Allocate limited resources effectively</li>
+                                <li>Identify vital few vs. trivial many</li>
+                                <li>Make data-driven decisions</li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="method-card" data-method="standardwork">
+                        <h4>📝 Standard Work</h4>
+                        <p>Document and standardize best practices for consistent, repeatable results.</p>
+                        <div class="use-cases">
+                            <strong>Use when you have:</strong>
+                            <ul>
+                                <li>Inconsistent work methods</li>
+                                <li>New employee training needs</li>
+                                <li>Need to preserve best practices</li>
+                                <li>Quality variations between workers</li>
+                                <li>Successful improvements to standardize</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Guided Exercises for each method -->
+            <div id="exercise-5s" class="guided-exercise">
+                <h2>🏢 5S Methodology Guided Exercise</h2>
+                
+                <div class="exercise-step">
+                    <h4>Understanding 5S</h4>
+                    <ol>
+                        <li><strong>Sort (Seiri):</strong> Separate needed from unneeded items</li>
+                        <li><strong>Set in Order (Seiton):</strong> Organize items for easy access</li>
+                        <li><strong>Shine (Seiso):</strong> Clean and maintain the workspace</li>
+                        <li><strong>Standardize (Seiketsu):</strong> Create standards for organization</li>
+                        <li><strong>Sustain (Shitsuke):</strong> Maintain discipline and continuous improvement</li>
+                    </ol>
+                </div>
+                
+                <div class="guided-questions">
+                    <h4>🔍 5S Assessment Questions</h4>
+                    
+                    <div class="question-group">
+                        <label>Which of the 5S principles does this opportunity address?</label>
+                        <select id="5s-principle">
+                            <option value="">Select 5S Principle</option>
+                            <option value="Sort">Sort - Removing unnecessary items</option>
+                            <option value="Set in Order">Set in Order - Organizing for efficiency</option>
+                            <option value="Shine">Shine - Cleaning and maintenance</option>
+                            <option value="Standardize">Standardize - Creating consistent practices</option>
+                            <option value="Sustain">Sustain - Maintaining improvements</option>
+                        </select>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Describe the current state of your workplace/process:</label>
+                        <textarea id="5s-current-state" placeholder="What inefficiencies, clutter, or disorganization do you observe?"></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What specific items or practices need to be addressed?</label>
+                        <textarea id="5s-items" placeholder="List specific items to sort, organize, clean, or standardize..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What is your proposed 5S solution?</label>
+                        <textarea id="5s-solution" placeholder="Describe how you will implement the 5S principle to improve the situation..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>How will you measure success?</label>
+                        <input type="text" id="5s-success-metric" placeholder="Time saved, space recovered, defects reduced, etc.">
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFill5S()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-pdca" class="guided-exercise">
+                <h2>🔄 PDCA Cycle Guided Exercise</h2>
+                
+                <div class="exercise-step">
+                    <h4>PDCA Process</h4>
+                    <ol>
+                        <li><strong>Plan:</strong> Identify the problem and plan the solution</li>
+                        <li><strong>Do:</strong> Implement the solution on a small scale</li>
+                        <li><strong>Check:</strong> Measure and evaluate the results</li>
+                        <li><strong>Act:</strong> Standardize successful solutions</li>
+                    </ol>
+                </div>
+                
+                <div class="guided-questions">
+                    <h4>🔍 PDCA Planning Questions</h4>
+                    
+                    <div class="question-group">
+                        <label>PLAN - What problem are you trying to solve?</label>
+                        <textarea id="pdca-problem" placeholder="Clearly define the problem, including its impact and scope..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>PLAN - What is your hypothesis for the solution?</label>
+                        <textarea id="pdca-hypothesis" placeholder="What do you believe will solve the problem and why?"></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>DO - How will you test your solution?</label>
+                        <textarea id="pdca-test" placeholder="Describe your pilot test or small-scale implementation..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>CHECK - How will you measure success?</label>
+                        <input type="text" id="pdca-metrics" placeholder="Define specific metrics to evaluate results">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>ACT - If successful, how will you standardize this solution?</label>
+                        <textarea id="pdca-standardize" placeholder="Describe how you will roll out and sustain the improvement..."></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFillPDCA()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-5whys" class="guided-exercise">
+                <h2>❓ 5 Whys Analysis Guided Exercise</h2>
+                
+                <div class="exercise-step">
+                    <h4>5 Whys Process</h4>
+                    <ol>
+                        <li>State the problem clearly</li>
+                        <li>Ask "Why?" and provide a fact-based answer</li>
+                        <li>Continue asking "Why?" for each answer</li>
+                        <li>Repeat until you reach the root cause (usually 5 times)</li>
+                        <li>Develop countermeasures for the root cause</li>
+                    </ol>
+                </div>
+                
+                <div class="guided-questions">
+                    <h4>🔍 5 Whys Analysis</h4>
+                    
+                    <div class="question-group">
+                        <label>Problem Statement:</label>
+                        <input type="text" id="5whys-problem" placeholder="What is the specific problem or symptom?">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Why #1 - Why did this problem occur?</label>
+                        <input type="text" id="5whys-why1" placeholder="First level cause">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Why #2 - Why did that cause occur?</label>
+                        <input type="text" id="5whys-why2" placeholder="Second level cause">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Why #3 - Why did that cause occur?</label>
+                        <input type="text" id="5whys-why3" placeholder="Third level cause">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Why #4 - Why did that cause occur?</label>
+                        <input type="text" id="5whys-why4" placeholder="Fourth level cause">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Why #5 - Why did that cause occur?</label>
+                        <input type="text" id="5whys-why5" placeholder="Root cause">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Root Cause Solution:</label>
+                        <textarea id="5whys-solution" placeholder="What solution will address the root cause?"></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFill5Whys()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-gemba" class="guided-exercise">
+                <h2>👁️ Gemba Walk Guided Exercise</h2>
+                
+                <div class="exercise-step">
+                    <h4>Gemba Walk Process</h4>
+                    <ol>
+                        <li>Go to the actual workplace (Gemba)</li>
+                        <li>Observe the current process without interfering</li>
+                        <li>Ask questions to understand the situation</li>
+                        <li>Identify waste and improvement opportunities</li>
+                        <li>Collaborate with workers on solutions</li>
+                    </ol>
+                </div>
+                
+                <div class="guided-questions">
+                    <h4>🔍 Gemba Walk Observations</h4>
+                    
+                    <div class="question-group">
+                        <label>Where did you conduct your Gemba walk?</label>
+                        <input type="text" id="gemba-location" placeholder="Specific location or process area">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What did you observe? (Current state)</label>
+                        <textarea id="gemba-observations" placeholder="Describe what you saw, heard, and experienced..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What waste or inefficiencies did you identify?</label>
+                        <textarea id="gemba-waste" placeholder="List specific examples of waste: waiting, overproduction, transportation, etc."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What insights did you gain from workers?</label>
+                        <textarea id="gemba-insights" placeholder="What did the people doing the work tell you about the problems?"></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What improvement opportunity did you identify?</label>
+                        <textarea id="gemba-opportunity" placeholder="Based on your observations, what should be improved?"></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What solution do you propose?</label>
+                        <textarea id="gemba-solution" placeholder="Describe your proposed solution based on Gemba observations..."></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFillGemba()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-vsm" class="guided-exercise">
+                <h2>🗺️ Value Stream Mapping Guided Exercise</h2>
+                
+                <div class="exercise-step">
+                    <h4>Value Stream Mapping Process</h4>
+                    <ol>
+                        <li>Define the product or service family</li>
+                        <li>Map the current state process flow</li>
+                        <li>Identify value-added and non-value-added activities</li>
+                        <li>Design the future state with waste eliminated</li>
+                        <li>Create an implementation plan</li>
+                    </ol>
+                </div>
+                
+                <div class="guided-questions">
+                    <h4>🔍 Value Stream Analysis</h4>
+                    
+                    <div class="question-group">
+                        <label>What process or product family are you mapping?</label>
+                        <input type="text" id="vsm-process" placeholder="Specific process or product family">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Describe the current process flow:</label>
+                        <textarea id="vsm-current-flow" placeholder="List all steps from start to finish..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What non-value-added activities did you identify?</label>
+                        <textarea id="vsm-waste" placeholder="List waiting, transportation, overprocessing, etc."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What is your proposed future state?</label>
+                        <textarea id="vsm-future-state" placeholder="Describe the improved process with waste eliminated..."></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFillVSM()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-pokayoke" class="guided-exercise">
+                <h2>🛡️ Poka-Yoke Guided Exercise</h2>
+                
+                <div class="guided-questions">
+                    <h4>🔍 Error Prevention Analysis</h4>
+                    
+                    <div class="question-group">
+                        <label>What type of error or defect are you trying to prevent?</label>
+                        <input type="text" id="pokayoke-error" placeholder="Specific error or defect type">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Where in the process does this error occur?</label>
+                        <textarea id="pokayoke-location" placeholder="Describe the process step where errors happen..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What poka-yoke solution do you propose?</label>
+                        <textarea id="pokayoke-solution" placeholder="Describe your error-prevention mechanism..."></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFillPokayoke()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-a3" class="guided-exercise">
+                <h2>📋 A3 Problem Solving Guided Exercise</h2>
+                
+                <div class="guided-questions">
+                    <h4>🔍 A3 Problem Solving Structure</h4>
+                    
+                    <div class="question-group">
+                        <label>Problem Statement (What is the problem?):</label>
+                        <textarea id="a3-problem" placeholder="Clear, specific problem statement..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Current State (What is happening now?):</label>
+                        <textarea id="a3-current" placeholder="Describe the current situation with facts and data..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Root Cause Analysis (Why is this happening?):</label>
+                        <textarea id="a3-root-cause" placeholder="Analyze the root causes..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Target State (What should it look like?):</label>
+                        <textarea id="a3-target" placeholder="Define the desired future state..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Countermeasures (How will you fix it?):</label>
+                        <textarea id="a3-countermeasures" placeholder="Specific actions to address root causes..."></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFillA3()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-fishbone" class="guided-exercise">
+                <h2>🐟 Fishbone Diagram Guided Exercise</h2>
+                
+                <div class="guided-questions">
+                    <h4>🔍 Cause and Effect Analysis</h4>
+                    
+                    <div class="question-group">
+                        <label>Problem Statement (Effect):</label>
+                        <input type="text" id="fishbone-problem" placeholder="What is the problem or effect?">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>People-related causes:</label>
+                        <textarea id="fishbone-people" placeholder="Training, skills, motivation, communication..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Process-related causes:</label>
+                        <textarea id="fishbone-process" placeholder="Procedures, workflows, standards..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Equipment/Machine-related causes:</label>
+                        <textarea id="fishbone-equipment" placeholder="Tools, machinery, technology..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Material-related causes:</label>
+                        <textarea id="fishbone-material" placeholder="Raw materials, supplies, information..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Environment-related causes:</label>
+                        <textarea id="fishbone-environment" placeholder="Physical environment, culture, policies..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>Most likely root cause and solution:</label>
+                        <textarea id="fishbone-solution" placeholder="Based on your analysis, what is the primary cause and solution?"></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFillFishbone()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-pareto" class="guided-exercise">
+                <h2>📊 Pareto Analysis Guided Exercise</h2>
+                
+                <div class="guided-questions">
+                    <h4>🔍 80/20 Analysis</h4>
+                    
+                    <div class="question-group">
+                        <label>What problems or issues are you analyzing?</label>
+                        <textarea id="pareto-problems" placeholder="List all problems or categories of problems..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>How are you measuring impact? (frequency, cost, time, etc.)</label>
+                        <input type="text" id="pareto-metric" placeholder="Defects per day, cost per incident, hours lost, etc.">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What are the top 20% of problems causing 80% of the impact?</label>
+                        <textarea id="pareto-vital-few" placeholder="Identify the vital few problems with highest impact..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What solution will address the highest impact problems?</label>
+                        <textarea id="pareto-solution" placeholder="Focus on solutions for the vital few problems..."></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFillPareto()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <div id="exercise-standardwork" class="guided-exercise">
+                <h2>📝 Standard Work Guided Exercise</h2>
+                
+                <div class="guided-questions">
+                    <h4>🔍 Work Standardization</h4>
+                    
+                    <div class="question-group">
+                        <label>What work process needs standardization?</label>
+                        <input type="text" id="standardwork-process" placeholder="Specific work process or task">
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What is the current best practice method?</label>
+                        <textarea id="standardwork-current" placeholder="Describe the most effective way to do this work..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What variations exist between workers?</label>
+                        <textarea id="standardwork-variations" placeholder="How do different people do this work differently?"></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>What standard will you implement?</label>
+                        <textarea id="standardwork-standard" placeholder="Define the standard work method, sequence, and timing..."></textarea>
+                    </div>
+                    
+                    <div class="question-group">
+                        <label>How will you train and sustain the standard?</label>
+                        <textarea id="standardwork-sustain" placeholder="Training plan, audit process, continuous improvement..."></textarea>
+                    </div>
+                    
+                    <button class="auto-fill-btn" onclick="autoFillStandardWork()">📝 Auto-Fill Form</button>
+                </div>
+            </div>
+
+            <!-- Regular submission form (pre-filled based on method) -->
+            <div class="form-section">
+                <h2>📝 Submit Your Guided CI Opportunity</h2>
+                <form id="guidedCiForm">
+                    <input type="hidden" id="selectedMethod" value="">
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="guidedSubmitter">Your Name:</label>
+                            <input type="text" id="guidedSubmitter" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="guidedDepartment">Department:</label>
+                            <select id="guidedDepartment" required>
+                                <option value="">Select Department</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="guidedPriority">Priority Level:</label>
+                            <select id="guidedPriority" required>
+                                <option value="">Select Priority</option>
+                                <option value="Critical">Critical</option>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="guidedCategory">CI Category:</label>
+                            <select id="guidedCategory" required>
+                                <option value="">Select Category</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="guidedProblem">Problem Description:</label>
+                        <textarea id="guidedProblem" rows="4" placeholder="This will be populated based on your method selection..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="guidedSolution">Proposed Solution:</label>
+                        <textarea id="guidedSolution" rows="4" placeholder="This will be populated based on your method analysis..."></textarea>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="guidedEstimatedSavings">Estimated Savings ($):</label>
+                            <input type="number" id="guidedEstimatedSavings" placeholder="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="guidedEstimatedEffort">Estimated Effort (Hours):</label>
+                            <input type="number" id="guidedEstimatedEffort" placeholder="0">
+                        </div>
+                    </div>
+                    
+                    <button type="submit">🚀 Submit Guided CI Opportunity</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Quick Submit Tab -->
+        <div id="submit" class="tab-content">
+            <div class="form-section">
+                <h2>➕ Quick Submit CI Opportunity</h2>
+                <form id="ciForm">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="submitter">Your Name:</label>
+                            <input type="text" id="submitter" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="department">Department:</label>
+                            <select id="department" required>
+                                <option value="">Select Department</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="priority">Priority Level:</label>
+                            <select id="priority" required>
+                                <option value="">Select Priority</option>
+                                <option value="Critical">Critical</option>
+                                <option value="High">High</option>
+                                <option value="Medium">Medium</option>
+                                <option value="Low">Low</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="category">CI Category:</label>
+                            <select id="category" required>
+                                <option value="">Select Category</option>
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="problem">Problem Description:</label>
+                        <textarea id="problem" rows="4" placeholder="Describe the current problem or opportunity..." required></textarea>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="solution">Proposed Solution:</label>
+                        <textarea id="solution" rows="4" placeholder="Describe your proposed solution..."></textarea>
+                    </div>
+                    
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="estimatedSavings">Estimated Savings ($):</label>
+                            <input type="number" id="estimatedSavings" placeholder="0">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="estimatedEffort">Estimated Effort (Hours):</label>
+                            <input type="number" id="estimatedEffort" placeholder="0">
+                        </div>
+                    </div>
+                    
+                    <button type="submit">🚀 Submit CI Opportunity</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Leaderboard Tab -->
+        <div id="leaderboard" class="tab-content">
+            <div class="leaderboard">
+                <h2>🏆 Top Contributors</h2>
+
+    <!-- POINTS EXPLANATION -->
+    <div style="background: #f0f9ff; border: 1px solid #0ea5e9; border-radius: 8px; padding: 15px; margin-bottom: 20px;">
+        <h4 style="color: #0369a1; margin-bottom: 10px;">📊 How Points Are Calculated</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #667eea;">1</div>
+                <div style="font-size: 12px; color: #666;">Point per<br>Submission</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #38a169;">5</div>
+                <div style="font-size: 12px; color: #666;">Points per<br>Completion</div>
+            </div>
+            <div style="text-align: center;">
+                <div style="font-size: 24px; font-weight: bold; color: #ed8936;">1</div>
+                <div style="font-size: 12px; color: #666;">Point per<br>$1,000 Saved</div>
+            </div>
+        </div>
+        <p style="text-align: center; margin-top: 10px; font-size: 14px; color: #555;">
+            <strong>Example:</strong> Submit 3 ideas (3 pts) + Complete 2 (10 pts) + Save $5,000 (5 pts) = <strong>18 total points</strong>
+        </p>
+    </div>
+
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Name</th>
+                            <th>Department</th>
+                            <th>Opportunities Submitted</th>
+                            <th>Completed</th>
+                            <th>Favorite Method</th>
+                            <th>Total Savings</th>
+                            <th>Points</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboardBody">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="leaderboard">
+                <h2>🛠️ Method Effectiveness</h2>
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>Method</th>
+                            <th>Times Used</th>
+                            <th>Completion Rate</th>
+                            <th>Avg Resolution Time</th>
+                            <th>Total Savings</th>
+                            <th>Avg Savings per Use</th>
+                        </tr>
+                    </thead>
+                    <tbody id="methodLeaderboard">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- All Opportunities Tab -->
+        <div id="opportunities" class="tab-content">
+            <div class="form-section">
+                <h2>📋 All CI Opportunities</h2>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="filterStatus">Filter by Status:</label>
+                        <select id="filterStatus" onchange="filterOpportunities()">
+                            <option value="">All Statuses</option>
+                            <option value="Submitted">Submitted</option>
+                            <option value="Under Review">Under Review</option>
+                            <option value="Approved">Approved</option>
+                            <option value="In Progress">In Progress</option>
+                            <option value="Completed">Completed</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="filterDepartment">Filter by Department:</label>
+                        <select id="filterDepartment" onchange="filterOpportunities()">
+                            <option value="">All Departments</option>
+                            <!-- Populated dynamically -->
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="filterMethod">Filter by Method:</label>
+                        <select id="filterMethod" onchange="filterOpportunities()">
+                            <option value="">All Methods</option>
+                            <option value="5S Methodology">5S Methodology</option>
+                            <option value="PDCA Cycle">PDCA Cycle</option>
+                            <option value="5 Whys Analysis">5 Whys Analysis</option>
+                            <option value="Gemba Walk">Gemba Walk</option>
+                            <option value="Value Stream Mapping">Value Stream Mapping</option>
+                            <option value="Poka-Yoke">Poka-Yoke</option>
+                            <option value="A3 Problem Solving">A3 Problem Solving</option>
+                            <option value="Fishbone Diagram">Fishbone Diagram</option>
+                            <option value="Pareto Analysis">Pareto Analysis</option>
+                            <option value="Standard Work">Standard Work</option>
+                            <option value="Quick Submit">Quick Submit</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Submitter</th>
+                            <th>Department</th>
+                            <th>Method</th>
+                            <th>Problem</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Days Open</th>
+                            <th>Est. Savings</th>
+                            <th class="actions-column">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="opportunitiesTable">
+                        <!-- Populated by JavaScript -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Admin Tab -->
+        <div id="admin" class="tab-content">
+            <div class="admin-section">
+                <h2>🔧 Admin Panel</h2>
+                <p>Manage system configuration and data. Changes are automatically saved to local storage.</p>
+                
+                <div class="data-management">
+                    <h3>📊 Data Management</h3>
+                    <button onclick="exportData()" class="btn-success">📥 Export All Data</button>
+                    <button onclick="importData()" class="btn-warning">📤 Import Data</button>
+                    <button onclick="clearAllData()" class="btn-danger">🗑️ Clear All Data</button>
+                    <button onclick="resetToDefaults()" class="btn-warning">🔄 Reset to Defaults</button>
+                    <input type="file" id="importFile" accept=".json" style="display: none;" onchange="handleFileImport(event)">
+                </div>
+
+                <div class="admin-section">
+                    <h3>🏢 Manage Departments</h3>
+                    <div class="form-grid">
+                        <input type="text" id="newDepartment" placeholder="New Department Name">
+                        <button onclick="addDepartment()" class="btn-success">➕ Add Department</button>
+                    </div>
+                    <div id="departmentsList"></div>
+                </div>
+
+                <div class="admin-section">
+                    <h3>📂 Manage Categories</h3>
+                    <div class="form-grid">
+                        <input type="text" id="newCategory" placeholder="New Category Name">
+                        <button onclick="addCategory()" class="btn-success">➕ Add Category</button>
+                    </div>
+                    <div id="categoriesList"></div>
+                </div>
+
+                <div class="admin-section">
+                    <h3>🔍 Advanced Opportunity Management</h3>
+                    <div class="form-grid">
+                        <input type="text" id="searchOpportunity" placeholder="Search by ID or submitter name" onkeyup="searchOpportunities()">
+                        <button onclick="bulkUpdateStatus()" class="btn-warning">🔄 Bulk Update Status</button>
+                    </div>
+                    <div id="adminOpportunitiesTable"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Opportunity Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditModal()">&times;</span>
+            <h2>Edit CI Opportunity</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editSubmitter">Submitter:</label>
+                    <input type="text" id="editSubmitter" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDepartment">Department:</label>
+                    <select id="editDepartment" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="editMethod">Method Used:</label>
+                    <select id="editMethod" required>
+                        <option value="5S Methodology">5S Methodology</option>
+                        <option value="PDCA Cycle">PDCA Cycle</option>
+                        <option value="5 Whys Analysis">5 Whys Analysis</option>
+                        <option value="Gemba Walk">Gemba Walk</option>
+                        <option value="Value Stream Mapping">Value Stream Mapping</option>
+                        <option value="Poka-Yoke">Poka-Yoke</option>
+                        <option value="A3 Problem Solving">A3 Problem Solving</option>
+                        <option value="Fishbone Diagram">Fishbone Diagram</option>
+                        <option value="Pareto Analysis">Pareto Analysis</option>
+                        <option value="Standard Work">Standard Work</option>
+                        <option value="Quick Submit">Quick Submit</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editProblem">Problem:</label>
+                    <textarea id="editProblem" rows="3" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editSolution">Solution:</label>
+                    <textarea id="editSolution" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="editCategory">Category:</label>
+                    <select id="editCategory" required></select>
+                </div>
+                <div class="form-group">
+                    <label for="editPriority">Priority:</label>
+                    <select id="editPriority" required>
+                        <option value="Critical">Critical</option>
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="editStatus">Status:</label>
+                    <select id="editStatus" required>
+                        <option value="Submitted">Submitted</option>
+                        <option value="Under Review">Under Review</option>
+                        <option value="Approved">Approved</option>
+                        <option value="In Progress">In Progress</option>
+                        <option value="Completed">Completed</option>
+                    </select>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="editEstimatedSavings">Estimated Savings ($):</label>
+                        <input type="number" id="editEstimatedSavings">
+                    </div>
+                    <div class="form-group">
+                        <label for="editActualSavings">Actual Savings ($):</label>
+                        <input type="number" id="editActualSavings">
+                    </div>
+                </div>
+                <button type="submit" class="btn-success">💾 Save Changes</button>
+                <button type="button" onclick="closeEditModal()">❌ Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let ciOpportunities = [];
+        let charts = {};
+        let nextId = 1;
+        let isAdminMode = false;
+        let selectedMethod = null;
+        let appConfig = {
+            departments: [
+                'Manufacturing', 'Quality', 'Operations', 'Safety', 
+                'Maintenance', 'IT', 'HR', 'Finance'
+            ],
+            categories: [
+                'Waste Reduction', 'Quality Improvement', 'Safety Enhancement',
+                'Process Optimization', 'Cost Reduction', 'Automation',
+                'Training', 'Communication'
+            ]
+        };
+
+        // Available status options
+        const statusOptions = [
+            'Submitted', 'Under Review', 'Approved', 'In Progress', 'Completed'
+        ];
+
+        // Kaizen method definitions
+        const kaizenMethods = {
+            '5s': { name: '5S Methodology', description: 'Workplace organization and efficiency' },
+            'pdca': { name: 'PDCA Cycle', description: 'Systematic continuous improvement' },
+            '5whys': { name: '5 Whys Analysis', description: 'Root cause analysis' },
+            'gemba': { name: 'Gemba Walk', description: 'Go-and-see approach' },
+            'vsm': { name: 'Value Stream Mapping', description: 'Process flow analysis' },
+            'pokayoke': { name: 'Poka-Yoke', description: 'Error prevention' },
+            'a3': { name: 'A3 Problem Solving', description: 'Structured problem-solving' },
+            'fishbone': { name: 'Fishbone Diagram', description: 'Cause and effect analysis' },
+            'pareto': { name: 'Pareto Analysis', description: '80/20 rule application' },
+            'standardwork': { name: 'Standard Work', description: 'Best practice documentation' }
+        };
+
+        // Sample data with all methods represented
+        const sampleData = [
+            {
+                id: 1, submitter: "John Smith", department: "Manufacturing",
+                problem: "5S Implementation - Sort: Tools scattered around workstation, causing delays in finding the right tool.",
+                solution: "Implement shadow boards for tool organization with clearly marked positions for each tool.",
+                category: "Process Optimization", priority: "High", status: "Completed", method: "5S Methodology",
+                dateSubmitted: "2024-11-15", dateCompleted: "2024-12-01", estimatedSavings: 5000, estimatedEffort: 40, actualSavings: 4800
+            },
+            {
+                id: 2, submitter: "Sarah Johnson", department: "Quality",
+                problem: "PDCA Analysis - Problem: Frequent quality check delays causing bottlenecks in production line.",
+                solution: "Hypothesis: Insufficient training on new inspection procedures. Test enhanced training program.",
+                category: "Quality Improvement", priority: "Medium", status: "In Progress", method: "PDCA Cycle",
+                dateSubmitted: "2024-12-01", dateCompleted: null, estimatedSavings: 3000, estimatedEffort: 25, actualSavings: 0
+            },
+            {
+                id: 3, submitter: "Mike Davis", department: "Operations",
+                problem: "5 Whys Analysis - Problem: Inefficient scheduling system Why 1-5 analysis revealed root cause in IT infrastructure.",
+                solution: "Root Cause Solution: Implement integrated scheduling system with real-time data feeds.",
+                category: "Automation", priority: "High", status: "Approved", method: "5 Whys Analysis",
+                dateSubmitted: "2024-12-05", dateCompleted: null, estimatedSavings: 8000, estimatedEffort: 80, actualSavings: 0
+            },
+            {
+                id: 4, submitter: "Emily Brown", department: "Safety",
+                problem: "Gemba Walk at Production Floor A - Observations: Workers frequently walking long distances for materials.",
+                solution: "Gemba-Based Solution: Implement 5S workplace organization with ergonomic workspace design.",
+                category: "Safety Enhancement", priority: "Critical", status: "Under Review", method: "Gemba Walk",
+                dateSubmitted: "2024-12-10", dateCompleted: null, estimatedSavings: 2000, estimatedEffort: 30, actualSavings: 0
+            },
+            {
+                id: 5, submitter: "David Wilson", department: "Manufacturing",
+                problem: "Value Stream Mapping - Process: Engine assembly line identified excessive transportation and waiting time.",
+                solution: "Future State Solution: Implement cellular manufacturing with co-located inspection.",
+                category: "Process Optimization", priority: "Critical", status: "Completed", method: "Value Stream Mapping",
+                dateSubmitted: "2024-11-20", dateCompleted: "2024-12-15", estimatedSavings: 12000, estimatedEffort: 60, actualSavings: 11500
+            },
+            {
+                id: 6, submitter: "Lisa Chen", department: "Quality",
+                problem: "Poka-Yoke Error Prevention - Error Type: Frequent assembly errors Location: Final assembly station.",
+                solution: "Error Prevention Solution: Implement color-coded parts and fixture design to prevent misassembly.",
+                category: "Quality Improvement", priority: "High", status: "Completed", method: "Poka-Yoke",
+                dateSubmitted: "2024-11-25", dateCompleted: "2024-12-10", estimatedSavings: 4500, estimatedEffort: 35, actualSavings: 4200
+            },
+            {
+                id: 7, submitter: "Robert Martinez", department: "Operations",
+                problem: "A3 Problem Solving - Problem: High overtime costs Current State: Excessive overtime in packaging department.",
+                solution: "A3 Countermeasures: Implement flexible staffing model and cross-training program.",
+                category: "Cost Reduction", priority: "Medium", status: "In Progress", method: "A3 Problem Solving",
+                dateSubmitted: "2024-12-02", dateCompleted: null, estimatedSavings: 6000, estimatedEffort: 50, actualSavings: 0
+            },
+            {
+                id: 8, submitter: "Amanda Taylor", department: "Manufacturing",
+                problem: "Fishbone Analysis - Problem: High defect rate People: Insufficient training Process: Inconsistent procedures Equipment: Outdated machinery.",
+                solution: "Primary Root Cause Solution: Implement comprehensive training program and update standard operating procedures.",
+                category: "Quality Improvement", priority: "Critical", status: "Approved", method: "Fishbone Diagram",
+                dateSubmitted: "2024-12-03", dateCompleted: null, estimatedSavings: 8500, estimatedEffort: 70, actualSavings: 0
+            },
+            {
+                id: 9, submitter: "Kevin Thompson", department: "Quality",
+                problem: "Pareto Analysis - Problems: Multiple quality issues Measurement: Defects per thousand units Vital Few: 80% of defects from 3 main causes.",
+                solution: "Pareto-Based Solution: Focus improvement efforts on top 3 defect causes: operator error, material variance, and machine calibration.",
+                category: "Quality Improvement", priority: "High", status: "Submitted", method: "Pareto Analysis",
+                dateSubmitted: "2024-12-08", dateCompleted: null, estimatedSavings: 7000, estimatedEffort: 45, actualSavings: 0
+            },
+            {
+                id: 10, submitter: "Jennifer Lee", department: "Operations",
+                problem: "Standard Work - Process: Customer service response time Current Best Practice: 2-hour response Variations: Some agents take 4+ hours.",
+                solution: "Standard Work Solution: Implement standardized response templates and tracking system. Sustainability Plan: Monthly training refreshers.",
+                category: "Process Optimization", priority: "Medium", status: "Completed", method: "Standard Work",
+                dateSubmitted: "2024-11-28", dateCompleted: "2024-12-12", estimatedSavings: 3500, estimatedEffort: 30, actualSavings: 3200
+            }
+        ];
+
+        // Local Storage Functions
+        function saveToLocalStorage() {
+            try {
+                const data = {
+                    opportunities: ciOpportunities,
+                    config: appConfig,
+                    nextId: nextId,
+                    lastSaved: new Date().toISOString()
+                };
+                
+                localStorage.setItem('kaizenCIData', JSON.stringify(data));
+                updateStorageInfo();
+                console.log('Data saved to local storage successfully');
+            } catch (error) {
+                console.error('Error saving to local storage:', error);
+                if (error.name === 'QuotaExceededError') {
+                    alert('Error: Local storage is full. Please clear some data or export your data.');
+                }
+            }
+        }
+
+        function loadFromLocalStorage() {
+            try {
+                const savedData = localStorage.getItem('kaizenCIData');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    ciOpportunities = data.opportunities || [];
+                    appConfig = data.config || appConfig;
+                    nextId = data.nextId || 1;
+                    console.log('Data loaded from local storage successfully');
+                    return true;
+                }
+            } catch (error) {
+                console.error('Error loading from local storage:', error);
+            }
+            return false;
+        }
+
+        function updateStorageInfo() {
+            try {
+                const data = localStorage.getItem('kaizenCIData');
+                const sizeInBytes = data ? new Blob([data]).size : 0;
+                const sizeInKB = Math.round(sizeInBytes / 1024 * 100) / 100;
+                
+                const methodsUsed = new Set(ciOpportunities.map(o => o.method || 'Quick Submit')).size;
+                
+                document.getElementById('storageUsed').textContent = `${sizeInKB} KB`;
+                document.getElementById('opportunitiesStored').textContent = ciOpportunities.length;
+                document.getElementById('methodsUsed').textContent = methodsUsed;
+                
+                const savedData = JSON.parse(data || '{}');
+                const lastSaved = savedData.lastSaved ? new Date(savedData.lastSaved).toLocaleString() : 'Never';
+                document.getElementById('lastSaved').textContent = lastSaved;
+            } catch (error) {
+                console.error('Error updating storage info:', error);
+            }
+        }
+
+        // Method Selection Functions
+        function selectMethod(methodKey) {
+            console.log('Selecting method:', methodKey);
+            
+            // Remove previous selection
+            document.querySelectorAll('.method-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selection to clicked card
+            const selectedCard = document.querySelector(`[data-method="${methodKey}"]`);
+            if (selectedCard) {
+                selectedCard.classList.add('selected');
+                console.log('Method card selected:', methodKey);
+            }
+            
+            // Hide all exercises
+            document.querySelectorAll('.guided-exercise').forEach(exercise => {
+                exercise.classList.remove('active');
+            });
+            
+            // Show selected exercise
+            const exercise = document.getElementById(`exercise-${methodKey}`);
+            if (exercise) {
+                exercise.classList.add('active');
+                console.log('Exercise shown:', methodKey);
+            } else {
+                console.error('Exercise not found for method:', methodKey);
+            }
+            
+            // Update selected method
+            selectedMethod = methodKey;
+            document.getElementById('selectedMethod').value = kaizenMethods[methodKey]?.name || methodKey;
+        }
+
+        // Auto-fill functions for ALL methods
+        function autoFill5S() {
+            const principle = document.getElementById('5s-principle').value;
+            const currentState = document.getElementById('5s-current-state').value;
+            const items = document.getElementById('5s-items').value;
+            const solution = document.getElementById('5s-solution').value;
+            const metric = document.getElementById('5s-success-metric').value;
+            
+            const problem = `5S Implementation - ${principle}: ${currentState} Specific items to address: ${items}`;
+            const proposedSolution = `${solution} Success will be measured by: ${metric}`;
+            
+            document.getElementById('guidedProblem').value = problem;
+            document.getElementById('guidedSolution').value = proposedSolution;
+            document.getElementById('guidedCategory').value = 'Process Optimization';
+        }
+
+        function autoFillPDCA() {
+            const problem = document.getElementById('pdca-problem').value;
+            const hypothesis = document.getElementById('pdca-hypothesis').value;
+            const test = document.getElementById('pdca-test').value;
+            const metrics = document.getElementById('pdca-metrics').value;
+            const standardize = document.getElementById('pdca-standardize').value;
+            
+            const fullProblem = `PDCA Analysis - Problem: ${problem}`;
+            const fullSolution = `Hypothesis: ${hypothesis} Test Plan: ${test} Success Metrics: ${metrics} Standardization: ${standardize}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Process Optimization';
+        }
+
+        function autoFill5Whys() {
+            const problem = document.getElementById('5whys-problem').value;
+            const why1 = document.getElementById('5whys-why1').value;
+            const why2 = document.getElementById('5whys-why2').value;
+            const why3 = document.getElementById('5whys-why3').value;
+            const why4 = document.getElementById('5whys-why4').value;
+            const why5 = document.getElementById('5whys-why5').value;
+            const solution = document.getElementById('5whys-solution').value;
+            
+            const fullProblem = `5 Whys Analysis - Problem: ${problem} Why 1: ${why1} Why 2: ${why2} Why 3: ${why3} Why 4: ${why4} Why 5 (Root Cause): ${why5}`;
+            const fullSolution = `Root Cause Solution: ${solution}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Quality Improvement';
+        }
+
+        function autoFillGemba() {
+            const location = document.getElementById('gemba-location').value;
+            const observations = document.getElementById('gemba-observations').value;
+            const waste = document.getElementById('gemba-waste').value;
+            const insights = document.getElementById('gemba-insights').value;
+            const opportunity = document.getElementById('gemba-opportunity').value;
+            const solution = document.getElementById('gemba-solution').value;
+            
+            const fullProblem = `Gemba Walk at ${location} - Observations: ${observations} Waste Identified: ${waste} Worker Insights: ${insights} Opportunity: ${opportunity}`;
+            const fullSolution = `Gemba-Based Solution: ${solution}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Waste Reduction';
+        }
+
+        function autoFillVSM() {
+            const process = document.getElementById('vsm-process').value;
+            const currentFlow = document.getElementById('vsm-current-flow').value;
+            const waste = document.getElementById('vsm-waste').value;
+            const futureState = document.getElementById('vsm-future-state').value;
+            
+            const fullProblem = `Value Stream Mapping - Process: ${process} Current Flow: ${currentFlow} Waste Identified: ${waste}`;
+            const fullSolution = `Future State Solution: ${futureState}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Process Optimization';
+        }
+
+        function autoFillPokayoke() {
+            const error = document.getElementById('pokayoke-error').value;
+            const location = document.getElementById('pokayoke-location').value;
+            const solution = document.getElementById('pokayoke-solution').value;
+            
+            const fullProblem = `Poka-Yoke Error Prevention - Error Type: ${error} Location: ${location}`;
+            const fullSolution = `Error Prevention Solution: ${solution}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Quality Improvement';
+        }
+
+        function autoFillA3() {
+            const problem = document.getElementById('a3-problem').value;
+            const current = document.getElementById('a3-current').value;
+            const rootCause = document.getElementById('a3-root-cause').value;
+            const target = document.getElementById('a3-target').value;
+            const countermeasures = document.getElementById('a3-countermeasures').value;
+            
+            const fullProblem = `A3 Problem Solving - Problem: ${problem} Current State: ${current} Root Cause: ${rootCause} Target State: ${target}`;
+            const fullSolution = `A3 Countermeasures: ${countermeasures}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Process Optimization';
+        }
+
+        function autoFillFishbone() {
+            const problem = document.getElementById('fishbone-problem').value;
+            const people = document.getElementById('fishbone-people').value;
+            const process = document.getElementById('fishbone-process').value;
+            const equipment = document.getElementById('fishbone-equipment').value;
+            const material = document.getElementById('fishbone-material').value;
+            const environment = document.getElementById('fishbone-environment').value;
+            const solution = document.getElementById('fishbone-solution').value;
+            
+            const fullProblem = `Fishbone Analysis - Problem: ${problem} People: ${people} Process: ${process} Equipment: ${equipment} Material: ${material} Environment: ${environment}`;
+            const fullSolution = `Primary Root Cause Solution: ${solution}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Quality Improvement';
+        }
+
+        function autoFillPareto() {
+            const problems = document.getElementById('pareto-problems').value;
+            const metric = document.getElementById('pareto-metric').value;
+            const vitalFew = document.getElementById('pareto-vital-few').value;
+            const solution = document.getElementById('pareto-solution').value;
+            
+            const fullProblem = `Pareto Analysis - Problems: ${problems} Measurement: ${metric} Vital Few (80% impact): ${vitalFew}`;
+            const fullSolution = `Pareto-Based Solution: ${solution}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Process Optimization';
+        }
+
+        function autoFillStandardWork() {
+            const process = document.getElementById('standardwork-process').value;
+            const current = document.getElementById('standardwork-current').value;
+            const variations = document.getElementById('standardwork-variations').value;
+            const standard = document.getElementById('standardwork-standard').value;
+            const sustain = document.getElementById('standardwork-sustain').value;
+            
+            const fullProblem = `Standard Work - Process: ${process} Current Best Practice: ${current} Variations: ${variations}`;
+            const fullSolution = `Standard Work Solution: ${standard} Sustainability Plan: ${sustain}`;
+            
+            document.getElementById('guidedProblem').value = fullProblem;
+            document.getElementById('guidedSolution').value = fullSolution;
+            document.getElementById('guidedCategory').value = 'Process Optimization';
+        }
+
+        // Initialize the application
+        function init() {
+            console.log('Initializing Kaizen CI Tracker...');
+            
+            // Try to load data from localStorage
+            const hasStoredData = loadFromLocalStorage();
+            
+            // If no stored data, use sample data
+            if (!hasStoredData) {
+                ciOpportunities = [...sampleData];
+                nextId = Math.max(...ciOpportunities.map(o => o.id)) + 1;
+                saveToLocalStorage();
+            }
+            
+            // Add method selection event listeners
+            document.querySelectorAll('.method-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    const method = this.dataset.method;
+                    console.log('Method card clicked:', method);
+                    selectMethod(method);
+                });
+            });
+            
+            // Update displays
+            updateFormSelects();
+            updateStats();
+            updateCharts();
+            updateLeaderboards();
+            updateOpportunitiesTable();
+            updateStorageInfo();
+            
+            // Add form event listeners
+            document.getElementById('ciForm').addEventListener('submit', handleFormSubmit);
+            document.getElementById('guidedCiForm').addEventListener('submit', handleGuidedFormSubmit);
+            document.getElementById('editForm').addEventListener('submit', handleEditSubmit);
+            
+            console.log('Initialization complete. Methods available:', Object.keys(kaizenMethods));
+        }
+
+        // Handle guided form submission
+        function handleGuidedFormSubmit(e) {
+            e.preventDefault();
+            
+            const methodName = selectedMethod ? kaizenMethods[selectedMethod]?.name : 'Quick Submit';
+            
+            const formData = {
+                id: nextId++,
+                submitter: document.getElementById('guidedSubmitter').value,
+                department: document.getElementById('guidedDepartment').value,
+                problem: document.getElementById('guidedProblem').value,
+                solution: document.getElementById('guidedSolution').value,
+                category: document.getElementById('guidedCategory').value,
+                priority: document.getElementById('guidedPriority').value,
+                status: "Submitted",
+                method: methodName,
+                dateSubmitted: new Date().toISOString().split('T')[0],
+                dateCompleted: null,
+                estimatedSavings: parseInt(document.getElementById('guidedEstimatedSavings').value) || 0,
+                estimatedEffort: parseInt(document.getElementById('guidedEstimatedEffort').value) || 0,
+                actualSavings: 0
+            };
+            
+            ciOpportunities.push(formData);
+            saveToLocalStorage();
+            
+            // Reset form and method selection
+            document.getElementById('guidedCiForm').reset();
+            document.querySelectorAll('.method-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            document.querySelectorAll('.guided-exercise').forEach(exercise => {
+                exercise.classList.remove('active');
+            });
+            selectedMethod = null;
+            
+            // Update displays
+            updateStats();
+            updateCharts();
+            updateLeaderboards();
+            updateOpportunitiesTable();
+            if (isAdminMode) updateAdminOpportunitiesTable();
+            
+            alert(`CI Opportunity submitted successfully using ${methodName} method!`);
+        }
+
+        // Handle regular form submission
+        function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            const formData = {
+                id: nextId++,
+                submitter: document.getElementById('submitter').value,
+                department: document.getElementById('department').value,
+                problem: document.getElementById('problem').value,
+                solution: document.getElementById('solution').value,
+                category: document.getElementById('category').value,
+                priority: document.getElementById('priority').value,
+                status: "Submitted",
+                method: "Quick Submit",
+                dateSubmitted: new Date().toISOString().split('T')[0],
+                dateCompleted: null,
+                estimatedSavings: parseInt(document.getElementById('estimatedSavings').value) || 0,
+                estimatedEffort: parseInt(document.getElementById('estimatedEffort').value) || 0,
+                actualSavings: 0
+            };
+            
+            ciOpportunities.push(formData);
+            saveToLocalStorage();
+            
+            // Reset form
+            document.getElementById('ciForm').reset();
+            
+            // Update displays
+            updateStats();
+            updateCharts();
+            updateLeaderboards();
+            updateOpportunitiesTable();
+            if (isAdminMode) updateAdminOpportunitiesTable();
+            
+            alert('CI Opportunity submitted successfully!');
+        }
+
+        // Update form selects with current config
+        function updateFormSelects() {
+            const departmentSelects = ['department', 'guidedDepartment', 'editDepartment', 'filterDepartment'];
+            const categorySelects = ['category', 'guidedCategory', 'editCategory'];
+            
+            departmentSelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = selectId === 'filterDepartment' ? 
+                        '<option value="">All Departments</option>' : 
+                        '<option value="">Select Department</option>';
+                    
+                    appConfig.departments.forEach(dept => {
+                        const option = document.createElement('option');
+                        option.value = dept;
+                        option.textContent = dept;
+                        select.appendChild(option);
+                    });
+                    
+                    select.value = currentValue;
+                }
+            });
+            
+            categorySelects.forEach(selectId => {
+                const select = document.getElementById(selectId);
+                if (select) {
+                    const currentValue = select.value;
+                    select.innerHTML = '<option value="">Select Category</option>';
+                    
+                    appConfig.categories.forEach(cat => {
+                        const option = document.createElement('option');
+                        option.value = cat;
+                        option.textContent = cat;
+                        select.appendChild(option);
+                    });
+                    
+                    select.value = currentValue;
+                }
+            });
+        }
+
+        // Enhanced Status Update with Dropdown
+        function updateStatus(id, selectElement) {
+            const opportunity = ciOpportunities.find(o => o.id === id);
+            if (!opportunity) return;
+            
+            const newStatus = selectElement.value;
+            const oldStatus = opportunity.status;
+            
+            // Update the opportunity
+            opportunity.status = newStatus;
+            
+            // Handle completion logic
+            if (newStatus === 'Completed' && oldStatus !== 'Completed') {
+                opportunity.dateCompleted = new Date().toISOString().split('T')[0];
+                
+                // Show savings input
+                const savingsSection = selectElement.parentElement.querySelector('.savings-input');
+                if (savingsSection) {
+                    savingsSection.style.display = 'block';
+                    const savingsInput = savingsSection.querySelector('input');
+                    savingsInput.value = opportunity.estimatedSavings || 0;
+                    savingsInput.focus();
+                }
+            } else if (newStatus !== 'Completed') {
+                opportunity.dateCompleted = null;
+                // Hide savings input
+                const savingsSection = selectElement.parentElement.querySelector('.savings-input');
+                if (savingsSection) {
+                    savingsSection.style.display = 'none';
+                }
+            }
+            
+            // Save and update displays
+            saveToLocalStorage();
+            updateStats();
+            updateCharts();
+            updateLeaderboards();
+            
+            // Show success message
+            const statusBadge = selectElement.parentElement.querySelector('.status-badge');
+            if (statusBadge) {
+                statusBadge.textContent = newStatus;
+                statusBadge.className = `status-badge status-${newStatus.toLowerCase().replace(' ', '-')}`;
+            }
+            
+            console.log(`Status updated for opportunity ${id}: ${oldStatus} → ${newStatus}`);
+        }
+
+        // Save actual savings
+        function saveActualSavings(id, inputElement) {
+            const opportunity = ciOpportunities.find(o => o.id === id);
+            if (opportunity) {
+                opportunity.actualSavings = parseInt(inputElement.value) || 0;
+                saveToLocalStorage();
+                updateStats();
+                updateCharts();
+                updateLeaderboards();
+                
+                // Hide the savings input
+                const savingsSection = inputElement.parentElement;
+                savingsSection.style.display = 'none';
+                
+                alert(`Actual savings of $${opportunity.actualSavings.toLocaleString()} saved for opportunity ${id}!`);
+            }
+        }
+
+        // Admin Mode Functions
+        function toggleAdminMode() {
+            const password = prompt('Enter admin password:');
+            if (password === 'admin123') {
+                isAdminMode = !isAdminMode;
+                const adminTab = document.getElementById('adminTab');
+                adminTab.style.display = isAdminMode ? 'block' : 'none';
+                
+                if (isAdminMode) {
+                    updateAdminPanel();
+                    alert('Admin mode enabled!');
+                } else {
+                    alert('Admin mode disabled!');
+                }
+            } else if (password !== null) {
+                alert('Invalid password!');
+            }
+        }
+
+        function updateAdminPanel() {
+            updateDepartmentsList();
+            updateCategoriesList();
+            updateAdminOpportunitiesTable();
+        }
+
+        function updateDepartmentsList() {
+            const container = document.getElementById('departmentsList');
+            container.innerHTML = appConfig.departments.map(dept => `
+                <div class="config-item">
+                    <span>${dept}</span>
+                    <button onclick="removeDepartment('${dept}')" class="btn-danger">🗑️ Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function updateCategoriesList() {
+            const container = document.getElementById('categoriesList');
+            container.innerHTML = appConfig.categories.map(cat => `
+                <div class="config-item">
+                    <span>${cat}</span>
+                    <button onclick="removeCategory('${cat}')" class="btn-danger">🗑️ Remove</button>
+                </div>
+            `).join('');
+        }
+
+        function addDepartment() {
+            const newDept = document.getElementById('newDepartment').value.trim();
+            if (newDept && !appConfig.departments.includes(newDept)) {
+                appConfig.departments.push(newDept);
+                updateFormSelects();
+                updateDepartmentsList();
+                saveToLocalStorage();
+                document.getElementById('newDepartment').value = '';
+                alert(`Department "${newDept}" added successfully!`);
+            } else if (appConfig.departments.includes(newDept)) {
+                alert('Department already exists!');
+            }
+        }
+
+        function removeDepartment(dept) {
+            if (confirm(`Are you sure you want to remove "${dept}"? This will affect existing opportunities.`)) {
+                appConfig.departments = appConfig.departments.filter(d => d !== dept);
+                updateFormSelects();
+                updateDepartmentsList();
+                saveToLocalStorage();
+                alert(`Department "${dept}" removed successfully!`);
+            }
+        }
+
+        function addCategory() {
+            const newCat = document.getElementById('newCategory').value.trim();
+            if (newCat && !appConfig.categories.includes(newCat)) {
+                appConfig.categories.push(newCat);
+                updateFormSelects();
+                updateCategoriesList();
+                saveToLocalStorage();
+                document.getElementById('newCategory').value = '';
+                alert(`Category "${newCat}" added successfully!`);
+            } else if (appConfig.categories.includes(newCat)) {
+                alert('Category already exists!');
+            }
+        }
+
+        function removeCategory(cat) {
+            if (confirm(`Are you sure you want to remove "${cat}"? This will affect existing opportunities.`)) {
+                appConfig.categories = appConfig.categories.filter(c => c !== cat);
+                updateFormSelects();
+                updateCategoriesList();
+                saveToLocalStorage();
+                alert(`Category "${cat}" removed successfully!`);
+            }
+        }
+
+        // Data Management Functions
+        function exportData() {
+            const data = {
+                opportunities: ciOpportunities,
+                config: appConfig,
+                nextId: nextId,
+                exportDate: new Date().toISOString()
+            };
+            
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `kaizen_ci_data_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importData() {
+            document.getElementById('importFile').click();
+        }
+
+        function handleFileImport(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        if (data.opportunities && data.config) {
+                            if (confirm('This will replace all current data. Are you sure?')) {
+                                ciOpportunities = data.opportunities;
+                                appConfig = data.config;
+                                nextId = data.nextId || 1;
+                                saveToLocalStorage();
+                                updateFormSelects();
+                                updateStats();
+                                updateCharts();
+                                updateLeaderboards();
+                                updateOpportunitiesTable();
+                                updateAdminPanel();
+                                alert('Data imported successfully!');
+                            }
+                        } else {
+                            alert('Invalid file format!');
+                        }
+                    } catch (error) {
+                        alert('Error importing data: ' + error.message);
+                    }
+                };
+                reader.readAsText(file);
+            }
+        }
+
+        function clearAllData() {
+            if (confirm('Are you sure you want to clear ALL data? This cannot be undone!')) {
+                if (confirm('This will permanently delete all CI opportunities and reset the system. Continue?')) {
+                    localStorage.removeItem('kaizenCIData');
+                    ciOpportunities = [];
+                    nextId = 1;
+                    updateStats();
+                    updateCharts();
+                    updateLeaderboards();
+                    updateOpportunitiesTable();
+                    updateStorageInfo();
+                    alert('All data cleared successfully!');
+                }
+            }
+        }
+
+        function resetToDefaults() {
+            if (confirm('Reset to default departments and categories? This will not affect CI opportunities.')) {
+                appConfig = {
+                    departments: [
+                        'Manufacturing', 'Quality', 'Operations', 'Safety', 
+                        'Maintenance', 'IT', 'HR', 'Finance'
+                    ],
+                    categories: [
+                        'Waste Reduction', 'Quality Improvement', 'Safety Enhancement',
+                        'Process Optimization', 'Cost Reduction', 'Automation',
+                        'Training', 'Communication'
+                    ]
+                };
+                updateFormSelects();
+                updateAdminPanel();
+                saveToLocalStorage();
+                alert('Reset to defaults successfully!');
+            }
+        }
+
+        // Enhanced Admin Opportunities Table
+        function updateAdminOpportunitiesTable() {
+            const container = document.getElementById('adminOpportunitiesTable');
+            container.innerHTML = `
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Submitter</th>
+                            <th>Department</th>
+                            <th>Method</th>
+                            <th>Problem</th>
+                            <th>Status</th>
+                            <th>Date Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${ciOpportunities.map(o => `
+                            <tr>
+                                <td>${o.id}</td>
+                                <td>${o.submitter}</td>
+                                <td>${o.department}</td>
+                                <td><span class="method-badge">${o.method || 'Quick Submit'}</span></td>
+                                <td>${o.problem.substring(0, 50)}...</td>
+                                <td><span class="status-badge status-${o.status.toLowerCase().replace(' ', '-')}">${o.status}</span></td>
+                                <td>${o.dateSubmitted}</td>
+                                <td>
+                                    <button onclick="editOpportunity(${o.id})" class="btn-warning btn-small">✏️ Edit</button>
+                                    <button onclick="deleteOpportunity(${o.id})" class="btn-danger btn-small">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function searchOpportunities() {
+            const searchTerm = document.getElementById('searchOpportunity').value.toLowerCase();
+            const filtered = ciOpportunities.filter(o => 
+                o.id.toString().includes(searchTerm) || 
+                o.submitter.toLowerCase().includes(searchTerm) ||
+                o.problem.toLowerCase().includes(searchTerm) ||
+                (o.method && o.method.toLowerCase().includes(searchTerm))
+            );
+            
+            const container = document.getElementById('adminOpportunitiesTable');
+            container.innerHTML = `
+                <table class="leaderboard-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Submitter</th>
+                            <th>Department</th>
+                            <th>Method</th>
+                            <th>Problem</th>
+                            <th>Status</th>
+                            <th>Date Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filtered.map(o => `
+                            <tr>
+                                <td>${o.id}</td>
+                                <td>${o.submitter}</td>
+                                <td>${o.department}</td>
+                                <td><span class="method-badge">${o.method || 'Quick Submit'}</span></td>
+                                <td>${o.problem.substring(0, 50)}...</td>
+                                <td><span class="status-badge status-${o.status.toLowerCase().replace(' ', '-')}">${o.status}</span></td>
+                                <td>${o.dateSubmitted}</td>
+                                <td>
+                                    <button onclick="editOpportunity(${o.id})" class="btn-warning btn-small">✏️ Edit</button>
+                                    <button onclick="deleteOpportunity(${o.id})" class="btn-danger btn-small">🗑️ Delete</button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function editOpportunity(id) {
+            const opportunity = ciOpportunities.find(o => o.id === id);
+            if (!opportunity) return;
+            
+            // Populate edit form
+            document.getElementById('editId').value = opportunity.id;
+            document.getElementById('editSubmitter').value = opportunity.submitter;
+            document.getElementById('editDepartment').value = opportunity.department;
+            document.getElementById('editMethod').value = opportunity.method || 'Quick Submit';
+            document.getElementById('editProblem').value = opportunity.problem;
+            document.getElementById('editSolution').value = opportunity.solution;
+            document.getElementById('editCategory').value = opportunity.category;
+            document.getElementById('editPriority').value = opportunity.priority;
+            document.getElementById('editStatus').value = opportunity.status;
+            document.getElementById('editEstimatedSavings').value = opportunity.estimatedSavings;
+            document.getElementById('editActualSavings').value = opportunity.actualSavings;
+            
+            // Show modal
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function handleEditSubmit(e) {
+            e.preventDefault();
+            
+            const id = parseInt(document.getElementById('editId').value);
+            const opportunityIndex = ciOpportunities.findIndex(o => o.id === id);
+            
+            if (opportunityIndex !== -1) {
+                const newStatus = document.getElementById('editStatus').value;
+                const oldStatus = ciOpportunities[opportunityIndex].status;
+                
+                ciOpportunities[opportunityIndex] = {
+                    ...ciOpportunities[opportunityIndex],
+                    submitter: document.getElementById('editSubmitter').value,
+                    department: document.getElementById('editDepartment').value,
+                    method: document.getElementById('editMethod').value,
+                    problem: document.getElementById('editProblem').value,
+                    solution: document.getElementById('editSolution').value,
+                    category: document.getElementById('editCategory').value,
+                    priority: document.getElementById('editPriority').value,
+                    status: newStatus,
+                    estimatedSavings: parseInt(document.getElementById('editEstimatedSavings').value) || 0,
+                    actualSavings: parseInt(document.getElementById('editActualSavings').value) || 0
+                };
+                
+                // Update completion date if status changed to completed
+                if (newStatus === 'Completed' && oldStatus !== 'Completed') {
+                    ciOpportunities[opportunityIndex].dateCompleted = new Date().toISOString().split('T')[0];
+                } else if (newStatus !== 'Completed') {
+                    ciOpportunities[opportunityIndex].dateCompleted = null;
+                }
+                
+                saveToLocalStorage();
+                updateStats();
+                updateCharts();
+                updateLeaderboards();
+                updateOpportunitiesTable();
+                updateAdminOpportunitiesTable();
+                closeEditModal();
+                alert('Opportunity updated successfully!');
+            }
+        }
+
+        function deleteOpportunity(id) {
+            if (confirm('Are you sure you want to delete this opportunity? This cannot be undone!')) {
+                ciOpportunities = ciOpportunities.filter(o => o.id !== id);
+                saveToLocalStorage();
+                updateStats();
+                updateCharts();
+                updateLeaderboards();
+                updateOpportunitiesTable();
+                updateAdminOpportunitiesTable();
+                alert('Opportunity deleted successfully!');
+            }
+        }
+
+        function bulkUpdateStatus() {
+            const newStatus = prompt('Enter new status for all selected opportunities:', 'Under Review');
+            if (newStatus && statusOptions.includes(newStatus)) {
+                const confirmCount = prompt('How many opportunities from the top of the list should be updated?', '5');
+                const count = parseInt(confirmCount);
+                
+                if (count && count > 0) {
+                    ciOpportunities.slice(0, count).forEach(o => {
+                        o.status = newStatus;
+                        if (newStatus === 'Completed' && !o.dateCompleted) {
+                            o.dateCompleted = new Date().toISOString().split('T')[0];
+                        }
+                    });
+                    
+                    saveToLocalStorage();
+                    updateStats();
+                    updateCharts();
+                    updateLeaderboards();
+                    updateOpportunitiesTable();
+                    updateAdminOpportunitiesTable();
+                    alert(`${count} opportunities updated to "${newStatus}" successfully!`);
+                }
+            }
+        }
+
+        // Update statistics
+        function updateStats() {
+            const total = ciOpportunities.length;
+            const completed = ciOpportunities.filter(o => o.status === 'Completed').length;
+            const totalSavings = ciOpportunities.reduce((sum, o) => sum + (o.actualSavings || 0), 0);
+            
+            const completedOpps = ciOpportunities.filter(o => o.status === 'Completed');
+            const avgResolutionTime = completedOpps.length > 0 ? 
+                Math.round(completedOpps.reduce((sum, o) => {
+                    const days = Math.floor((new Date(o.dateCompleted) - new Date(o.dateSubmitted)) / (1000 * 60 * 60 * 24));
+                    return sum + days;
+                }, 0) / completedOpps.length) : 0;
+            
+            document.getElementById('totalOpportunities').textContent = total;
+            document.getElementById('completedOpportunities').textContent = completed;
+            document.getElementById('avgResolutionTime').textContent = avgResolutionTime;
+            document.getElementById('totalSavings').textContent = '$' + totalSavings.toLocaleString();
+        }
+
+        // Update all charts
+        function updateCharts() {
+            updateStatusChart();
+            updateDepartmentChart();
+            updateMethodChart();
+            updateTrendsChart();
+            updateResolutionChart();
+            updateSavingsChart();
+        }
+
+        // Status chart
+        function updateStatusChart() {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            const statusCounts = {};
+            
+            ciOpportunities.forEach(o => {
+                statusCounts[o.status] = (statusCounts[o.status] || 0) + 1;
+            });
+            
+            if (charts.statusChart) {
+                charts.statusChart.destroy();
+            }
+            
+            charts.statusChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(statusCounts),
+                    datasets: [{
+                        data: Object.values(statusCounts),
+                        backgroundColor: ['#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Department chart
+        function updateDepartmentChart() {
+            const ctx = document.getElementById('departmentChart').getContext('2d');
+            const deptCounts = {};
+            
+            ciOpportunities.forEach(o => {
+                deptCounts[o.department] = (deptCounts[o.department] || 0) + 1;
+            });
+            
+            if (charts.departmentChart) {
+                charts.departmentChart.destroy();
+            }
+            
+            charts.departmentChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(deptCounts),
+                    datasets: [{
+                        label: 'Opportunities',
+                        data: Object.values(deptCounts),
+                        backgroundColor: '#667eea'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Method chart
+        function updateMethodChart() {
+            const ctx = document.getElementById('methodChart').getContext('2d');
+            const methodCounts = {};
+            
+            ciOpportunities.forEach(o => {
+                const method = o.method || 'Quick Submit';
+                methodCounts[method] = (methodCounts[method] || 0) + 1;
+            });
+            
+            if (charts.methodChart) {
+                charts.methodChart.destroy();
+            }
+            
+            charts.methodChart = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: Object.keys(methodCounts),
+                    datasets: [{
+                        data: Object.values(methodCounts),
+                        backgroundColor: [
+                            '#ff6384', '#36a2eb', '#ffce56', '#4bc0c0', '#9966ff',
+                            '#ff9f40', '#ff6384', '#c9cbcf', '#4bc0c0', '#36a2eb'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        // Trends chart
+        function updateTrendsChart() {
+            const ctx = document.getElementById('trendsChart').getContext('2d');
+            const monthlyData = {};
+            
+            ciOpportunities.forEach(o => {
+                const month = o.dateSubmitted.substring(0, 7);
+                monthlyData[month] = (monthlyData[month] || 0) + 1;
+            });
+            
+            const sortedMonths = Object.keys(monthlyData).sort();
+            
+            if (charts.trendsChart) {
+                charts.trendsChart.destroy();
+            }
+            
+            charts.trendsChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: sortedMonths,
+                    datasets: [{
+                        label: 'Submissions',
+                        data: sortedMonths.map(month => monthlyData[month]),
+                        borderColor: '#667eea',
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Resolution time chart by method
+        function updateResolutionChart() {
+            const ctx = document.getElementById('resolutionChart').getContext('2d');
+            const methodResolutionTimes = {};
+            
+            ciOpportunities.filter(o => o.status === 'Completed').forEach(o => {
+                const method = o.method || 'Quick Submit';
+                const days = Math.floor((new Date(o.dateCompleted) - new Date(o.dateSubmitted)) / (1000 * 60 * 60 * 24));
+                if (!methodResolutionTimes[method]) {
+                    methodResolutionTimes[method] = [];
+                }
+                methodResolutionTimes[method].push(days);
+            });
+            
+            const avgResolutionTimes = {};
+            Object.keys(methodResolutionTimes).forEach(method => {
+                const times = methodResolutionTimes[method];
+                avgResolutionTimes[method] = Math.round(times.reduce((a, b) => a + b, 0) / times.length);
+            });
+            
+            if (charts.resolutionChart) {
+                charts.resolutionChart.destroy();
+            }
+            
+            charts.resolutionChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(avgResolutionTimes),
+                    datasets: [{
+                        label: 'Avg Days',
+                        data: Object.values(avgResolutionTimes),
+                        backgroundColor: '#4bc0c0'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Savings chart by method
+        function updateSavingsChart() {
+            const ctx = document.getElementById('savingsChart').getContext('2d');
+            const methodSavings = {};
+            
+            ciOpportunities.forEach(o => {
+                const method = o.method || 'Quick Submit';
+                methodSavings[method] = (methodSavings[method] || 0) + (o.actualSavings || 0);
+            });
+            
+            if (charts.savingsChart) {
+                charts.savingsChart.destroy();
+            }
+            
+            charts.savingsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(methodSavings),
+                    datasets: [{
+                        label: 'Savings ($)',
+                        data: Object.values(methodSavings),
+                        backgroundColor: '#36a2eb'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Update leaderboards
+        function updateLeaderboards() {
+            updatePersonalLeaderboard();
+            updateMethodLeaderboard();
+        }
+
+        // Personal leaderboard with favorite method
+        function updatePersonalLeaderboard() {
+            const contributors = {};
+            
+            ciOpportunities.forEach(o => {
+                if (!contributors[o.submitter]) {
+                    contributors[o.submitter] = {
+                        name: o.submitter,
+                        department: o.department,
+                        submitted: 0,
+                        completed: 0,
+                        savings: 0,
+                        methods: {}
+                    };
+                }
+                contributors[o.submitter].submitted++;
+                const method = o.method || 'Quick Submit';
+                contributors[o.submitter].methods[method] = (contributors[o.submitter].methods[method] || 0) + 1;
+                
+                if (o.status === 'Completed') {
+                    contributors[o.submitter].completed++;
+                    contributors[o.submitter].savings += o.actualSavings || 0;
+                }
+            });
+            
+            // Calculate points and favorite method
+            const leaderboard = Object.values(contributors).map(c => {
+                const favoriteMethod = Object.keys(c.methods).reduce((a, b) => c.methods[a] > c.methods[b] ? a : b);
+                return {
+                    ...c,
+                    favoriteMethod: favoriteMethod,
+                    points: c.submitted + (c.completed * 5) + Math.floor(c.savings / 1000)
+                };
+            }).sort((a, b) => b.points - a.points);
+            
+            const tbody = document.getElementById('leaderboardBody');
+            tbody.innerHTML = leaderboard.map((contributor, index) => `
+                <tr>
+                    <td>${index + 1}</td>
+                    <td>${contributor.name}</td>
+                    <td>${contributor.department}</td>
+                    <td>${contributor.submitted}</td>
+                    <td>${contributor.completed}</td>
+                    <td><span class="method-badge">${contributor.favoriteMethod}</span></td>
+                    <td>$${contributor.savings.toLocaleString()}</td>
+                    <td>${contributor.points}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Method effectiveness leaderboard
+        function updateMethodLeaderboard() {
+            const methods = {};
+            
+            ciOpportunities.forEach(o => {
+                const method = o.method || 'Quick Submit';
+                if (!methods[method]) {
+                    methods[method] = {
+                        name: method,
+                        timesUsed: 0,
+                        completed: 0,
+                        savings: 0,
+                        totalDays: 0,
+                        completedCount: 0
+                    };
+                }
+                methods[method].timesUsed++;
+                if (o.status === 'Completed') {
+                    methods[method].completed++;
+                    methods[method].savings += o.actualSavings || 0;
+                    const days = Math.floor((new Date(o.dateCompleted) - new Date(o.dateSubmitted)) / (1000 * 60 * 60 * 24));
+                    methods[method].totalDays += days;
+                    methods[method].completedCount++;
+                }
+            });
+            
+            const methodLeaderboard = Object.values(methods).map(m => ({
+                ...m,
+                completionRate: Math.round((m.completed / m.timesUsed) * 100),
+                avgResolutionTime: m.completedCount > 0 ? Math.round(m.totalDays / m.completedCount) : 0,
+                avgSavingsPerUse: m.timesUsed > 0 ? Math.round(m.savings / m.timesUsed) : 0
+            })).sort((a, b) => b.completionRate - a.completionRate);
+            
+            const tbody = document.getElementById('methodLeaderboard');
+            tbody.innerHTML = methodLeaderboard.map(method => `
+                <tr>
+                    <td><span class="method-badge">${method.name}</span></td>
+                    <td>${method.timesUsed}</td>
+                    <td>${method.completionRate}%</td>
+                    <td>${method.avgResolutionTime} days</td>
+                    <td>$${method.savings.toLocaleString()}</td>
+                    <td>$${method.avgSavingsPerUse.toLocaleString()}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Enhanced Update opportunities table with method filter
+        function updateOpportunitiesTable() {
+            const tbody = document.getElementById('opportunitiesTable');
+            const filteredOpportunities = getFilteredOpportunities();
+            
+            tbody.innerHTML = filteredOpportunities.map(o => {
+                const daysOpen = Math.floor((new Date() - new Date(o.dateSubmitted)) / (1000 * 60 * 60 * 24));
+                const statusClass = `status-${o.status.toLowerCase().replace(' ', '-')}`;
+                const method = o.method || 'Quick Submit';
+                
+                return `
+                    <tr>
+                        <td>${o.id}</td>
+                        <td>${o.submitter}</td>
+                        <td>${o.department}</td>
+                        <td><span class="method-badge">${method}</span></td>
+                        <td>${o.problem.substring(0, 40)}...</td>
+                        <td>${o.priority}</td>
+                        <td><span class="status-badge ${statusClass}">${o.status}</span></td>
+                        <td>${daysOpen}</td>
+                        <td>$${o.estimatedSavings.toLocaleString()}</td>
+                        <td class="actions-column">
+                            <div class="status-update-section">
+                                <select class="status-dropdown" onchange="updateStatus(${o.id}, this)">
+                                    ${statusOptions.map(status => 
+                                        `<option value="${status}" ${o.status === status ? 'selected' : ''}>${status}</option>`
+                                    ).join('')}
+                                </select>
+                                <div class="savings-input" style="display: ${o.status === 'Completed' ? 'block' : 'none'};">
+                                    <input type="number" placeholder="Actual savings" value="${o.actualSavings || ''}">
+                                    <button onclick="saveActualSavings(${o.id}, this.previousElementSibling)" class="btn-success btn-small">💾</button>
+                                </div>
+                            </div>
+                            ${isAdminMode ? `<button onclick="editOpportunity(${o.id})" class="btn-warning btn-small">✏️ Edit</button>` : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Enhanced filter opportunities with method filter
+        function getFilteredOpportunities() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            const deptFilter = document.getElementById('filterDepartment').value;
+            const methodFilter = document.getElementById('filterMethod').value;
+            
+            return ciOpportunities.filter(o => {
+                const statusMatch = !statusFilter || o.status === statusFilter;
+                const deptMatch = !deptFilter || o.department === deptFilter;
+                const methodMatch = !methodFilter || (o.method || 'Quick Submit') === methodFilter;
+                return statusMatch && deptMatch && methodMatch;
+            });
+        }
+
+        // Filter opportunities function
+        function filterOpportunities() {
+            updateOpportunitiesTable();
+        }
+
+        // Tab switching
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => content.classList.remove('active'));
+            
+            // Remove active class from all tabs
+            const tabs = document.querySelectorAll('.tab');
+            tabs.forEach(tab => tab.classList.remove('active'));
+            
+            // Show selected tab content
+            document.getElementById(tabName).classList.add('active');
+            
+            // Add active class to selected tab
+            event.target.classList.add('active');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                closeEditModal();
+            }
+        }
+
+        // Initialize the application when page loads
+        window.addEventListener('load', init);
+
+        // Auto-save every 5 minutes
+        setInterval(() => {
+            if (ciOpportunities.length > 0) {
+                saveToLocalStorage();
+                console.log('Auto-saved data to local storage');
+            }
+        }, 300000); // 5 minutes
+
+        // Save data before page unload
+        window.addEventListener('beforeunload', function() {
+            saveToLocalStorage();
+        });
+    </script>
+</body>
+</html>
